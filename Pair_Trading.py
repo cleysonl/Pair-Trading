@@ -49,7 +49,7 @@ class Pair_Trading:
         while i < (len(self.data[self.info[0]])):
             pos_bal.append(self.balance)
             z_score[i] = ((self.data[self.info[0]].iloc[i]-(self.info[2] + (self.info[3] * self.data[self.info[1]].iloc[i])))-self.info[4])/self.info[5]
-            # Abre la posicion si en t=0 esta por abajo o por arriba de los STD_BOUNDS
+            # Opens position if in t=0 z_score is above (mean + STD_BOUNDS) or below (mean - STD_BOUNDS)
             if (i == 0 and z_score[i] >= self.info[4] + self.STD_BOUNDS*self.info[5]):
                 s, l, aux_pos = self.open_pos_s(pos_bal,i)
                 s_l.append((s,l))
@@ -61,8 +61,8 @@ class Pair_Trading:
                 ps_pl.append((self.data[self.info[0]].iloc[i],self.data[self.info[1]].iloc[i]))
                 t_o.append(i)
             else:
-                # Abre la posicion si z[i-1] esta por debajo del bound superior y z[i] esta por arriba
-                # 2 casos: que salte desde el bound inferior o pase de estar entre las bandas a estar por arriba
+                # Opens position if z_score[i-1] is below mean + STD_BOUND and z_score[i] is above it
+                # 2 cases: 1) jumps from below mean -STD_BOUND or 2) from between mean - STD_BOUND and mean + STD_BOUND
                 if (z_score[i-1] < (self.info[4] + self.STD_BOUNDS*self.info[5]) and z_score[i]>= (self.info[4] + self.STD_BOUNDS*self.info[5]) and i+1 < len(self.data[self.info[0]])):
                     if aux_pos == 'n':
                         s, l, aux_pos = self.open_pos_s(pos_bal,i)
@@ -78,8 +78,8 @@ class Pair_Trading:
                         s_l.append((s,l))
                         ps_pl.append((self.data[self.info[0]].iloc[i],self.data[self.info[1]].iloc[i]))
                         t_o.append(i)
-                # Abre la posicion si z[i-1] esta por arriba del bound inferior y z[i] esta por abajo
-                # 2 casos: que salte desde el bound superior o pase de estar entre las bandas a estar por abajo        
+                # Opens position if z_score[i-1] is above mean - STD_BOUND and z_score[i] is below it
+                # 2 cases: 1) jumps from above (mean + STD_BOUND) or 2) from between mean - STD_BOUND and mean + STD_BOUND        
                 elif (z_score[i-1] > (self.info[4] - self.STD_BOUNDS*self.info[5]) and z_score[i] <= (self.info[4] - self.STD_BOUNDS*self.info[5]) and i+1 < len(self.data[self.info[0]])):
                     if aux_pos == 'n':
                         s, l, aux_pos = self.open_pos_l(pos_bal,i)
@@ -96,14 +96,14 @@ class Pair_Trading:
                         ps_pl.append((self.data[self.info[0]].iloc[i],self.data[self.info[1]].iloc[i]))
                         t_o.append(i)
                 else:
-                    # Cierra las posiciones si z[i-1] esta por arriba de CLOSE_SP y z[i] esta por debajo de CLOSE_SP
+                    # Closes the position if z_score[i-1] is above CLOSE_SP and z_zero[i] is below CLOSE_SP
                     if ((z_score[i-1] > self.info[4] + self.CLOSE_SP*self.info[5] and z_score[i] <= self.info[4] + self.CLOSE_SP*self.info[5]) and i+1 < len(self.data[self.info[0]])):
                         if aux_pos == 'u':
                             self.balance, aux_pos = self.close_pos_s(pos_bal,i,ps_pl,s_l)
                             ps_pl.append((self.data[self.info[0]].iloc[i],self.data[self.info[1]].iloc[i]))
                             t_c.append(i)
                             pos_bal.append(self.balance)
-                    # Cierra las posiciones si z[i-1] esta por debajo de CLOSE_LP y z[i] esta por arriba de CLOSE_LP
+                    # Closes the position if z_score[i-1] is below CLOSE_LP and z_zero[i] is above CLOSE_LP        
                     elif((z_score[i-1] < self.info[4] - self.CLOSE_LP*self.info[5] and z_score[i] >= self.info[4] - self.CLOSE_LP*self.info[5]) and i+1 < len(self.data[self.info[0]])):
                         if aux_pos == 'd':
                             self.balance, aux_pos = self.close_pos_l(pos_bal,i,ps_pl,s_l)
@@ -111,8 +111,8 @@ class Pair_Trading:
                             t_c.append(i)
                             pos_bal.append(self.balance)
                     else:
-                    # Revisa si para el ultimo i se tiene que abrir posicion
-                    # Se abre y se cierra la posicion
+                    # Checks if for the last i a position is needed
+                    # Opens and closes the position
                         if(i+1 ==len(self.data[self.info[0]])):
                             if (z_score[i-1] < (self.info[4] + self.STD_BOUNDS*self.info[5]) and z_score[i]>= (self.info[4] + self.STD_BOUNDS*self.info[5])):
                                 s, l, aux_pos = self.open_pos_s(pos_bal,i)
